@@ -128,7 +128,10 @@ impl ModuleManager {
             .collect::<Vec<_>>()
             .join("\n");
 
-        FileMonitor::write_file_content(MODULE_PROP, &updated_content)?;
+        // 原子写入：先写临时文件再 rename 覆盖，避免直接写 module.prop 导致内容丢失
+        let temp_path = format!("{}.tmp", MODULE_PROP);
+        FileMonitor::write_file_content(&temp_path, &updated_content)?;
+        fs::rename(&temp_path, MODULE_PROP).map_err(FreePPSError::FileOperation)?;
         info!(
             "更新module.prop描述，添加状态前缀: {}",
             status_prefix.trim()
